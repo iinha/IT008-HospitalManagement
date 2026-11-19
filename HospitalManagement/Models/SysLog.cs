@@ -1,10 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 
-namespace HospitalManagement.Models
+namespace HospitalManagement.Models;
+
+public partial class Syslog
 {
-    internal class SysLog
-    {
-    }
+    public int LogId { get; set; }
+
+    public int? UserId { get; set; }
+
+    public string? Action { get; set; }
+
+    public DateTime? LoggedAt { get; set; }
+
+    public virtual User? User { get; set; }
 }
