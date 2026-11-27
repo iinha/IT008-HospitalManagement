@@ -1,12 +1,29 @@
 ﻿<UserControl x:Class="HospitalManagement.Views.Doctor.QueueView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:HospitalManagement.Views.Doctor"
-             mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Grid>
-            
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <DockPanel Margin="4,0,4,8">
+            <TextBlock Text="DANH SÁCH BỆNH NHÂN ĐANG CHỜ KHÁM" FontSize="16" FontWeight="Bold" Foreground="{StaticResource PrimaryBlue}" VerticalAlignment="Center"/>
+            <Button DockPanel.Dock="Right" Content="Tải lại hàng đợi" Style="{StaticResource SecondaryButton}" Command="{Binding RefreshQueueCommand}"/>
+        </DockPanel>
+
+        <DataGrid Grid.Row="1" ItemsSource="{Binding QueueRecords}" SelectedItem="{Binding SelectedRecord}" Margin="4">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Mã HS" Binding="{Binding RecordId}" Width="70"/>
+                <DataGridTextColumn Header="Bệnh nhân" Binding="{Binding Patient.Fullname}" Width="*"/>
+                <DataGridTextColumn Header="SĐT" Binding="{Binding Patient.Phone}" Width="120"/>
+                <DataGridTextColumn Header="Mã BHYT" Binding="{Binding Patient.HealthInsuranceCode}" Width="140"/>
+                <DataGridTextColumn Header="Giờ tiếp nhận" Binding="{Binding VisitDate, StringFormat=dd/MM/yyyy HH:mm}" Width="140"/>
+                <DataGridTextColumn Header="Trạng thái" Binding="{Binding Status}" Width="150"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <TextBlock Grid.Row="2" Text="{Binding StatusMessage}" Foreground="{StaticResource PrimaryBlue}" Margin="4"/>
     </Grid>
 </UserControl>
