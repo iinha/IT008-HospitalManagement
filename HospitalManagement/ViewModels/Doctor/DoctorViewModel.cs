@@ -37,7 +37,7 @@ namespace HospitalManagement.ViewModels.Doctor
 
         private Room? _selectedRoom;
         private DateTime _shiftDate = DateTime.Today;
-        private string _shiftTimeFrame = "Sang 07:30-11:30";
+        private string _shiftTimeFrame = "07:30 - 11:30";
 
         private Question? _selectedQuestion;
         private string _answerText = string.Empty;
@@ -53,7 +53,7 @@ namespace HospitalManagement.ViewModels.Doctor
         public ObservableCollection<Prescriptiondetail> CurrentRecordPrescriptions { get; } = new();
 
         public string[] OutcomeOptions { get; } = { "Đã khám", "Chuyển thủ thuật", "Chỉ định nhập viện" };
-        public string[] TimeFrames { get; } = { "Sang 07:30-11:30", "Chieu 13:30-17:30", "Toi 18:00-21:00" };
+        public string[] TimeFrames { get; } = { "07:30 - 11:30", "13:30 - 17:30", "18:00 - 21:00" };
 
         public Medicalrecord? SelectedRecord
         {
@@ -131,7 +131,7 @@ namespace HospitalManagement.ViewModels.Doctor
             LoadAll();
         }
 
-        private void LoadAll()
+        public void LoadAll()
         {
             int? selectedId = SelectedRecord?.RecordId;
 

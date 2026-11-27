@@ -22,18 +22,17 @@ namespace HospitalManagement.Services
 
         private static readonly List<(string Username, string Password, AuthSession Session)> DefaultStaffAccounts = new()
         {
-            ("admin", "123456", new AuthSession { Id = -1, Fullname = "Quản trị hệ thống (Test)", Role = "Admin", IsPatient = false }),
-            ("manager", "123456", new AuthSession { Id = -2, Fullname = "Ban quản lý (Test)", Role = "Management", IsPatient = false }),
-            ("doctor", "123456", new AuthSession { Id = -3, Fullname = "BS. Nguyễn Lạc Thường Miên (Test)", Role = "Doctor", IsPatient = false }),
-            ("nurse", "123456", new AuthSession { Id = -4, Fullname = "ĐD. Nguyễn Võ Ái Nhã (Test)", Role = "Nurse", IsPatient = false }),
-            ("reception", "123456", new AuthSession { Id = -5, Fullname = "LT. Võ Duy Hoàng (Test)", Role = "Reception", IsPatient = false }),
-            ("pharmacy", "123456", new AuthSession { Id = -6, Fullname = "DS. Nguyễn Văn A (Test)", Role = "Pharmacy", IsPatient = false })
+            ("admin", "123456", new AuthSession { Id = -1, Fullname = "Quản trị hệ thống", Role = "Admin", IsPatient = false }),
+            ("manager", "123456", new AuthSession { Id = -2, Fullname = "Ban quản lý", Role = "Management", IsPatient = false }),
+            ("doctor", "123456", new AuthSession { Id = -3, Fullname = "BS. Nguyễn Lạc Thường Miên", Role = "Doctor", IsPatient = false }),
+            ("nurse", "123456", new AuthSession { Id = -4, Fullname = "ĐD. Nguyễn Võ Ái Nhã", Role = "Nurse", IsPatient = false }),
+            ("reception", "123456", new AuthSession { Id = -5, Fullname = "LT. Võ Duy Hoàng", Role = "Reception", IsPatient = false }),
+            ("pharmacy", "123456", new AuthSession { Id = -6, Fullname = "DS. Nguyễn Văn A", Role = "Pharmacy", IsPatient = false })
         };
 
         private static readonly List<(string Phone, string Password, AuthSession Session)> DefaultPatientAccounts = new()
         {
-            ("0901234567", "123456", new AuthSession { Id = -100, Fullname = "Bệnh nhân mẫu (Test)", Role = "Patient", IsPatient = true }),
-            ("patient", "123456", new AuthSession { Id = -100, Fullname = "Bệnh nhân mẫu (Test)", Role = "Patient", IsPatient = true })
+            ("0901234567", "123456", new AuthSession { Id = -100, Fullname = "Bệnh nhân mẫu", Role = "Patient", IsPatient = true })
         };
 
         public string HashPassword(string password)
@@ -51,6 +50,25 @@ namespace HospitalManagement.Services
 
         public AuthSession? LoginStaff(string username, string password)
         {
+            using var db = new HospitalDbContext();
+            var user = db.Users.FirstOrDefault(u => u.Username == username);
+            if (user != null)
+            {
+                if (user.IsActive == false || !VerifyPassword(password, user.PasswordHash))
+                    return null;
+
+                CurrentSession = new AuthSession
+                {
+                    Id = user.UserId,
+                    Fullname = user.Fullname ?? user.Username ?? string.Empty,
+                    Role = user.Role ?? string.Empty,
+                    IsPatient = false
+                };
+
+                WriteLog(db, user.UserId, $"Đăng nhập hệ thống ({user.Role})");
+                return CurrentSession;
+            }
+
             var defaultAcc = DefaultStaffAccounts.FirstOrDefault(a =>
                 a.Username.Equals(username, StringComparison.OrdinalIgnoreCase) && a.Password == password);
             if (defaultAcc.Session != null)
@@ -59,46 +77,37 @@ namespace HospitalManagement.Services
                 return CurrentSession;
             }
 
-            using var db = new HospitalDbContext();
-            var user = db.Users.FirstOrDefault(u => u.Username == username);
-            if (user == null || user.IsActive == false || !VerifyPassword(password, user.PasswordHash))
-                return null;
-
-            CurrentSession = new AuthSession
-            {
-                Id = user.UserId,
-                Fullname = user.Fullname ?? user.Username ?? string.Empty,
-                Role = user.Role ?? string.Empty,
-                IsPatient = false
-            };
-
-            WriteLog(db, user.UserId, $"Đăng nhập hệ thống ({user.Role})");
-            return CurrentSession;
+            return null;
         }
 
         public AuthSession? LoginPatient(string phone, string password)
         {
+            using var db = new HospitalDbContext();
+            var patient = db.Patients.FirstOrDefault(p => p.Phone == phone);
+            if (patient != null)
+            {
+                if (!VerifyPassword(password, patient.PasswordHash))
+                    return null;
+
+                CurrentSession = new AuthSession
+                {
+                    Id = patient.PatientId,
+                    Fullname = patient.Fullname ?? patient.Phone ?? string.Empty,
+                    Role = "Patient",
+                    IsPatient = true
+                };
+                return CurrentSession;
+            }
+
             var defaultAcc = DefaultPatientAccounts.FirstOrDefault(a =>
-                a.Phone.Equals(phone, StringComparison.OrdinalIgnoreCase) && a.Password == password);
+                a.Phone == phone && a.Password == password);
             if (defaultAcc.Session != null)
             {
                 CurrentSession = defaultAcc.Session;
                 return CurrentSession;
             }
 
-            using var db = new HospitalDbContext();
-            var patient = db.Patients.FirstOrDefault(p => p.Phone == phone);
-            if (patient == null || !VerifyPassword(password, patient.PasswordHash))
-                return null;
-
-            CurrentSession = new AuthSession
-            {
-                Id = patient.PatientId,
-                Fullname = patient.Fullname ?? patient.Phone ?? string.Empty,
-                Role = "Patient",
-                IsPatient = true
-            };
-            return CurrentSession;
+            return null;
         }
 
         public bool RegisterPatient(string fullname, string phone, string password, DateTime? dob, string gender, string bhyt, out string error)

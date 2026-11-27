@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text.RegularExpressions;
 using System.Windows.Input;
 using HospitalManagement.Helpers;
 using HospitalManagement.Services;
@@ -96,17 +97,29 @@ namespace HospitalManagement.ViewModels
             });
         }
 
+        private static bool IsValidPhone(string phone)
+        {
+            return Regex.IsMatch(phone, @"^\d{9,11}$");
+        }
+
         private void ExecuteLogin()
         {
-            if (string.IsNullOrWhiteSpace(UsernameOrPhone) || string.IsNullOrWhiteSpace(Password))
+            string identifier = UsernameOrPhone.Trim();
+            if (string.IsNullOrWhiteSpace(identifier) || string.IsNullOrWhiteSpace(Password))
             {
                 StatusMessage = "Vui lòng nhập đầy đủ thông tin đăng nhập.";
                 return;
             }
 
+            if (IsPatientMode && !IsValidPhone(identifier))
+            {
+                StatusMessage = "Số điện thoại không hợp lệ (chỉ gồm 9-11 chữ số).";
+                return;
+            }
+
             AuthSession? session = IsPatientMode
-                ? _authService.LoginPatient(UsernameOrPhone.Trim(), Password)
-                : _authService.LoginStaff(UsernameOrPhone.Trim(), Password);
+                ? _authService.LoginPatient(identifier, Password)
+                : _authService.LoginStaff(identifier, Password);
 
             if (session == null)
             {
@@ -120,16 +133,35 @@ namespace HospitalManagement.ViewModels
 
         private void ExecuteRegister()
         {
-            if (string.IsNullOrWhiteSpace(RegFullname) || string.IsNullOrWhiteSpace(RegPhone) || string.IsNullOrWhiteSpace(RegPassword))
+            string phone = RegPhone.Trim();
+            if (string.IsNullOrWhiteSpace(RegFullname) || string.IsNullOrWhiteSpace(phone) || string.IsNullOrWhiteSpace(RegPassword))
             {
                 StatusMessage = "Vui lòng nhập Họ tên, Số điện thoại và Mật khẩu.";
                 return;
             }
 
-            if (_authService.RegisterPatient(RegFullname.Trim(), RegPhone.Trim(), RegPassword, RegDob, RegGender, RegBhyt.Trim(), out string error))
+            if (!IsValidPhone(phone))
+            {
+                StatusMessage = "Số điện thoại phải gồm từ 9 đến 11 chữ số.";
+                return;
+            }
+
+            if (RegPassword.Length < 4)
+            {
+                StatusMessage = "Mật khẩu phải có ít nhất 4 ký tự.";
+                return;
+            }
+
+            if (RegDob.HasValue && RegDob.Value > DateTime.Today)
+            {
+                StatusMessage = "Ngày sinh không được lớn hơn ngày hiện tại.";
+                return;
+            }
+
+            if (_authService.RegisterPatient(RegFullname.Trim(), phone, RegPassword, RegDob, RegGender, RegBhyt.Trim(), out string error))
             {
                 StatusMessage = "Đăng ký thành công. Vui lòng đăng nhập.";
-                UsernameOrPhone = RegPhone.Trim();
+                UsernameOrPhone = phone;
                 IsPatientMode = true;
                 IsRegisterMode = false;
             }

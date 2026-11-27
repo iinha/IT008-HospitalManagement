@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.ObjectModel;
+using System.Text.RegularExpressions;
 using System.Windows.Input;
 using HospitalManagement.Helpers;
 using HospitalManagement.Models;
@@ -23,9 +24,13 @@ namespace HospitalManagement.ViewModels.Patient
 
         private User? _questionDoctor;
         private string _questionContent = string.Empty;
-        private string _statusMessage = string.Empty;
+
+        private string _bookingStatusMessage = string.Empty;
+        private string _profileStatusMessage = string.Empty;
+        private string _qnaStatusMessage = string.Empty;
 
         public ObservableCollection<User> Doctors { get; } = new();
+        public ObservableCollection<User> QuestionDoctors { get; } = new();
         public ObservableCollection<Appointment> MyAppointments { get; } = new();
         public ObservableCollection<Medicalrecord> MedicalHistory { get; } = new();
         public ObservableCollection<Bill> MyBills { get; } = new();
@@ -53,7 +58,10 @@ namespace HospitalManagement.ViewModels.Patient
         public Article? SelectedArticle { get => _selectedArticle; set => SetProperty(ref _selectedArticle, value); }
         public User? QuestionDoctor { get => _questionDoctor; set => SetProperty(ref _questionDoctor, value); }
         public string QuestionContent { get => _questionContent; set => SetProperty(ref _questionContent, value); }
-        public string StatusMessage { get => _statusMessage; set => SetProperty(ref _statusMessage, value); }
+
+        public string BookingStatusMessage { get => _bookingStatusMessage; set => SetProperty(ref _bookingStatusMessage, value); }
+        public string ProfileStatusMessage { get => _profileStatusMessage; set => SetProperty(ref _profileStatusMessage, value); }
+        public string QnaStatusMessage { get => _qnaStatusMessage; set => SetProperty(ref _qnaStatusMessage, value); }
 
         public ICommand SaveProfileCommand { get; }
         public ICommand BookCommand { get; }
@@ -70,12 +78,26 @@ namespace HospitalManagement.ViewModels.Patient
             LoadAll();
         }
 
-        private void LoadAll()
+        public void LoadAll()
         {
+            BookingStatusMessage = string.Empty;
+            ProfileStatusMessage = string.Empty;
+            QnaStatusMessage = string.Empty;
+
             Profile = _patientService.GetPatientById(_patientId);
 
+            var doctorList = _patientService.GetDoctors();
             Doctors.Clear();
-            foreach (var d in _patientService.GetDoctors()) Doctors.Add(d);
+            QuestionDoctors.Clear();
+            var noneOption = new User { UserId = 0, Fullname = "Không" };
+            QuestionDoctors.Add(noneOption);
+
+            foreach (var d in doctorList)
+            {
+                Doctors.Add(d);
+                QuestionDoctors.Add(d);
+            }
+            QuestionDoctor = noneOption;
 
             MyAppointments.Clear();
             foreach (var a in _patientService.GetAppointmentsByPatient(_patientId)) MyAppointments.Add(a);
@@ -101,30 +123,50 @@ namespace HospitalManagement.ViewModels.Patient
         private void SaveProfile()
         {
             if (Profile == null) return;
-            _patientService.UpdateProfile(Profile);
-            StatusMessage = "Đã cập nhật hồ sơ cá nhân thành công.";
+            if (string.IsNullOrWhiteSpace(Profile.Fullname))
+            {
+                ProfileStatusMessage = "Họ và tên không được để trống.";
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(Profile.Phone) || !Regex.IsMatch(Profile.Phone.Trim(), @"^\d{9,11}$"))
+            {
+                ProfileStatusMessage = "Số điện thoại phải gồm 9-11 chữ số.";
+                return;
+            }
+            _patientService.UpdateProfile(Profile, out string msg);
+            ProfileStatusMessage = msg;
         }
 
         private void BookAppointment()
         {
             if (SelectedDoctor == null)
             {
-                StatusMessage = "Vui lòng chọn bác sĩ khám.";
+                BookingStatusMessage = "Vui lòng chọn bác sĩ khám.";
                 return;
             }
-            var appt = _patientService.BookAppointment(_patientId, SelectedDoctor.UserId, BookingDate, SelectedTimeSlot);
-            BookingCode = $"APT-{appt.ApptId:D5}";
-            StatusMessage = $"Đặt lịch thành công. Mã đặt hẹn của bạn: {BookingCode}";
-            LoadAll();
+            var appt = _patientService.BookAppointment(_patientId, SelectedDoctor.UserId, BookingDate, SelectedTimeSlot, out string msg);
+            if (appt != null)
+            {
+                BookingCode = $"APT-{appt.ApptId:D5}";
+                LoadAll();
+            }
+            BookingStatusMessage = msg;
         }
 
         private void SendQuestion()
         {
-            if (string.IsNullOrWhiteSpace(QuestionContent)) return;
-            _patientService.SubmitQuestion(_patientId, QuestionDoctor?.UserId, QuestionContent.Trim());
-            QuestionContent = string.Empty;
-            StatusMessage = "Đã gửi câu hỏi đến bác sĩ.";
-            LoadAll();
+            if (string.IsNullOrWhiteSpace(QuestionContent))
+            {
+                QnaStatusMessage = "Vui lòng nhập nội dung câu hỏi.";
+                return;
+            }
+            int? docId = QuestionDoctor != null && QuestionDoctor.UserId > 0 ? QuestionDoctor.UserId : null;
+            if (_patientService.SubmitQuestion(_patientId, docId, QuestionContent.Trim(), out string msg))
+            {
+                QuestionContent = string.Empty;
+                LoadAll();
+            }
+            QnaStatusMessage = msg;
         }
     }
 }

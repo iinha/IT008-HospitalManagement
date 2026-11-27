@@ -13,11 +13,11 @@
         <GroupBox Grid.Row="1" Header="Đặt câu hỏi mới">
             <StackPanel>
                 <TextBlock Text="Chọn bác sĩ (tùy chọn):"/>
-                <ComboBox ItemsSource="{Binding Doctors}" SelectedItem="{Binding QuestionDoctor}" DisplayMemberPath="Fullname" Width="280" HorizontalAlignment="Left"/>
+                <ComboBox ItemsSource="{Binding QuestionDoctors}" SelectedItem="{Binding QuestionDoctor}" DisplayMemberPath="Fullname" Width="280" HorizontalAlignment="Left"/>
                 <TextBlock Text="Nội dung thắc mắc:" Margin="0,6,0,0"/>
                 <TextBox Text="{Binding QuestionContent, UpdateSourceTrigger=PropertyChanged}" Height="65" AcceptsReturn="True" TextWrapping="Wrap"/>
                 <Button Content="Gửi câu hỏi" Command="{Binding SendQuestionCommand}" HorizontalAlignment="Left" Margin="2,6"/>
-                <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource PrimaryBlue}"/>
+                <TextBlock Text="{Binding QnaStatusMessage}" Foreground="{StaticResource PrimaryBlue}" TextWrapping="Wrap"/>
             </StackPanel>
         </GroupBox>
 

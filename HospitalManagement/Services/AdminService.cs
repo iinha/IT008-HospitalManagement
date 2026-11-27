@@ -29,9 +29,15 @@ namespace HospitalManagement.Services
             return db.Users.OrderBy(u => u.UserId).ToList();
         }
 
-        public void CreateUser(string username, string password, string fullname, string role)
+        public bool CreateUser(string username, string password, string fullname, string role, out string message)
         {
             using var db = new HospitalDbContext();
+            if (db.Users.Any(u => u.Username == username))
+            {
+                message = "Tên đăng nhập đã tồn tại.";
+                return false;
+            }
+
             int nextId = (db.Users.Max(u => (int?)u.UserId) ?? 0) + 1;
             db.Users.Add(new User
             {
@@ -44,38 +50,43 @@ namespace HospitalManagement.Services
             });
             db.SaveChanges();
             LogCurrentUser(db, $"Tạo tài khoản {username} ({role})");
+            message = "Đã tạo tài khoản thành công.";
+            return true;
         }
 
-        public void UpdateUser(User user)
+        public bool UpdateUser(User user)
         {
             using var db = new HospitalDbContext();
             var existing = db.Users.FirstOrDefault(u => u.UserId == user.UserId);
-            if (existing == null) return;
+            if (existing == null) return false;
             existing.Fullname = user.Fullname;
             existing.Role = user.Role;
             existing.IsActive = user.IsActive;
             db.SaveChanges();
             LogCurrentUser(db, $"Cập nhật nhân sự ID={user.UserId}");
+            return true;
         }
 
-        public void ToggleUserLock(int userId)
+        public bool ToggleUserLock(int userId)
         {
             using var db = new HospitalDbContext();
             var existing = db.Users.FirstOrDefault(u => u.UserId == userId);
-            if (existing == null) return;
+            if (existing == null) return false;
             existing.IsActive = !(existing.IsActive ?? true);
             db.SaveChanges();
             LogCurrentUser(db, $"Thay đổi trạng thái tài khoản ID={userId} thành {(existing.IsActive == true ? "Mở" : "Khóa")}");
+            return true;
         }
 
-        public void ResetPassword(int userId, string newPassword)
+        public bool ResetPassword(int userId, string newPassword)
         {
             using var db = new HospitalDbContext();
             var existing = db.Users.FirstOrDefault(u => u.UserId == userId);
-            if (existing == null) return;
+            if (existing == null) return false;
             existing.PasswordHash = _authService.HashPassword(newPassword);
             db.SaveChanges();
             LogCurrentUser(db, $"Cấp lại mật khẩu cho tài khoản ID={userId}");
+            return true;
         }
 
         public void DeleteUser(int userId)

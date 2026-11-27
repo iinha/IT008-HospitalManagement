@@ -43,6 +43,7 @@ namespace HospitalManagement.ViewModels.Admin
         public ICommand CreateAccountCommand { get; }
         public ICommand ToggleLockCommand { get; }
         public ICommand ResetPasswordCommand { get; }
+        public ICommand RefreshAllCommand { get; }
         public ICommand RefreshLogsCommand { get; }
         public ICommand BrowseBackupCommand { get; }
         public ICommand BackupCommand { get; }
@@ -53,11 +54,17 @@ namespace HospitalManagement.ViewModels.Admin
             CreateAccountCommand = new RelayCommand(_ => CreateAccount());
             ToggleLockCommand = new RelayCommand(_ => ToggleLock());
             ResetPasswordCommand = new RelayCommand(_ => ResetPassword());
+            RefreshAllCommand = new RelayCommand(_ => RefreshAll());
             RefreshLogsCommand = new RelayCommand(_ => LoadLogs());
             BrowseBackupCommand = new RelayCommand(_ => BrowseBackupFile());
             BackupCommand = new RelayCommand(_ => ExecuteBackup());
             RestoreCommand = new RelayCommand(_ => ExecuteRestore());
 
+            RefreshAll();
+        }
+
+        public void RefreshAll()
+        {
             LoadUsers();
             LoadLogs();
         }
@@ -81,22 +88,28 @@ namespace HospitalManagement.ViewModels.Admin
                 StatusMessage = "Vui lòng nhập đầy đủ thông tin tài khoản.";
                 return;
             }
-            _adminService.CreateUser(NewUsername.Trim(), NewPassword, NewFullname.Trim(), NewRole);
-            NewUsername = string.Empty;
-            NewPassword = string.Empty;
-            NewFullname = string.Empty;
-            StatusMessage = "Đã tạo tài khoản thành công.";
-            LoadUsers();
-            LoadLogs();
+            if (_adminService.CreateUser(NewUsername.Trim(), NewPassword, NewFullname.Trim(), NewRole, out string msg))
+            {
+                NewUsername = string.Empty;
+                NewPassword = string.Empty;
+                NewFullname = string.Empty;
+                RefreshAll();
+            }
+            StatusMessage = msg;
         }
 
         private void ToggleLock()
         {
-            if (SelectedUser == null) return;
-            _adminService.ToggleUserLock(SelectedUser.UserId);
-            StatusMessage = $"Đã thay đổi trạng thái tài khoản {SelectedUser.Username}.";
-            LoadUsers();
-            LoadLogs();
+            if (SelectedUser == null)
+            {
+                RefreshAll();
+                return;
+            }
+            bool ok = _adminService.ToggleUserLock(SelectedUser.UserId);
+            StatusMessage = ok
+                ? $"Đã thay đổi trạng thái tài khoản {SelectedUser.Username}."
+                : "Tài khoản không còn tồn tại trong CSDL. Đã làm mới danh sách.";
+            RefreshAll();
         }
 
         private void ResetPassword()
@@ -106,10 +119,12 @@ namespace HospitalManagement.ViewModels.Admin
                 StatusMessage = "Chọn tài khoản và nhập mật khẩu mới.";
                 return;
             }
-            _adminService.ResetPassword(SelectedUser.UserId, ResetPasswordText);
+            bool ok = _adminService.ResetPassword(SelectedUser.UserId, ResetPasswordText);
             ResetPasswordText = string.Empty;
-            StatusMessage = $"Đã cấp lại mật khẩu cho {SelectedUser.Username}.";
-            LoadLogs();
+            StatusMessage = ok
+                ? $"Đã cấp lại mật khẩu cho {SelectedUser.Username}."
+                : "Tài khoản không còn tồn tại trong CSDL. Đã làm mới danh sách.";
+            RefreshAll();
         }
 
         private void BrowseBackupFile()
@@ -138,6 +153,7 @@ namespace HospitalManagement.ViewModels.Admin
             {
                 _adminService.RestoreDatabase(BackupPath);
                 StatusMessage = "Phục hồi cơ sở dữ liệu thành công.";
+                RefreshAll();
             }
             catch (Exception ex)
             {

@@ -18,6 +18,7 @@ namespace HospitalManagement.ViewModels.Management
         private int _totalRecords;
         private int _totalAppointments;
         private string _alertText = string.Empty;
+        private string _staffStatusMessage = string.Empty;
 
         private User? _selectedStaff;
         private string _staffUsername = string.Empty;
@@ -27,7 +28,7 @@ namespace HospitalManagement.ViewModels.Management
 
         private Room? _selectedRoom;
         private DateTime _shiftDate = DateTime.Today;
-        private string _shiftTimeFrame = "Sang 07:30-11:30";
+        private string _shiftTimeFrame = "07:30 - 11:30";
 
         private Drug? _selectedDrug;
         private string _drugName = string.Empty;
@@ -56,7 +57,7 @@ namespace HospitalManagement.ViewModels.Management
         public ObservableCollection<Article> Articles { get; } = new();
 
         public string[] RoleOptions { get; } = { "Doctor", "Nurse", "Reception", "Pharmacy", "Management" };
-        public string[] TimeFrames { get; } = { "Sang 07:30-11:30", "Chieu 13:30-17:30", "Toi 18:00-21:00" };
+        public string[] TimeFrames { get; } = { "07:30 - 11:30", "13:30 - 17:30", "18:00 - 21:00" };
         public string[] ArticleCategories { get; } = { "Giới thiệu", "Cơ sở vật chất", "Đội ngũ bác sĩ", "Tin tức sức khỏe" };
 
         public decimal TotalRevenue { get => _totalRevenue; set => SetProperty(ref _totalRevenue, value); }
@@ -64,6 +65,7 @@ namespace HospitalManagement.ViewModels.Management
         public int TotalRecords { get => _totalRecords; set => SetProperty(ref _totalRecords, value); }
         public int TotalAppointments { get => _totalAppointments; set => SetProperty(ref _totalAppointments, value); }
         public string AlertText { get => _alertText; set => SetProperty(ref _alertText, value); }
+        public string StaffStatusMessage { get => _staffStatusMessage; set => SetProperty(ref _staffStatusMessage, value); }
 
         public User? SelectedStaff
         {
@@ -145,6 +147,7 @@ namespace HospitalManagement.ViewModels.Management
         public string ArticleContent { get => _articleContent; set => SetProperty(ref _articleContent, value); }
 
         public ICommand RefreshDashboardCommand { get; }
+        public ICommand RefreshAllCommand { get; }
         public ICommand SendAlertCommand { get; }
         public ICommand AddStaffCommand { get; }
         public ICommand UpdateStaffCommand { get; }
@@ -164,24 +167,20 @@ namespace HospitalManagement.ViewModels.Management
         {
             _broadcastAlert = broadcastAlert;
 
-            RefreshDashboardCommand = new RelayCommand(_ => LoadDashboard());
+            RefreshDashboardCommand = new RelayCommand(_ => LoadAll());
+            RefreshAllCommand = new RelayCommand(_ => LoadAll());
             SendAlertCommand = new RelayCommand(_ =>
             {
                 if (!string.IsNullOrWhiteSpace(AlertText))
                 {
-                    _broadcastAlert(AlertText);
+                    _broadcastAlert(AlertText.Trim());
                     AlertText = string.Empty;
                 }
             });
 
             AddStaffCommand = new RelayCommand(_ => AddStaff());
             UpdateStaffCommand = new RelayCommand(_ => UpdateStaff());
-            ToggleStaffLockCommand = new RelayCommand(_ =>
-            {
-                if (SelectedStaff == null) return;
-                _adminService.ToggleUserLock(SelectedStaff.UserId);
-                LoadStaff();
-            });
+            ToggleStaffLockCommand = new RelayCommand(_ => ToggleStaffLock());
             AssignShiftCommand = new RelayCommand(_ => AssignShift());
 
             SaveDrugCommand = new RelayCommand(_ => SaveDrug());
@@ -199,7 +198,7 @@ namespace HospitalManagement.ViewModels.Management
             LoadAll();
         }
 
-        private void LoadAll()
+        public void LoadAll()
         {
             LoadDashboard();
             LoadStaff();
@@ -254,19 +253,48 @@ namespace HospitalManagement.ViewModels.Management
 
         private void AddStaff()
         {
-            if (string.IsNullOrWhiteSpace(StaffUsername) || string.IsNullOrWhiteSpace(StaffPassword) || string.IsNullOrWhiteSpace(StaffFullname)) return;
-            _adminService.CreateUser(StaffUsername.Trim(), StaffPassword, StaffFullname.Trim(), StaffRole);
-            StaffUsername = ""; StaffPassword = ""; StaffFullname = "";
-            LoadStaff();
+            if (string.IsNullOrWhiteSpace(StaffUsername) || string.IsNullOrWhiteSpace(StaffPassword) || string.IsNullOrWhiteSpace(StaffFullname))
+            {
+                StaffStatusMessage = "Vui lòng nhập đầy đủ Username, Mật khẩu và Họ tên.";
+                return;
+            }
+            if (_adminService.CreateUser(StaffUsername.Trim(), StaffPassword, StaffFullname.Trim(), StaffRole, out string msg))
+            {
+                StaffUsername = ""; StaffPassword = ""; StaffFullname = "";
+                LoadStaff();
+            }
+            StaffStatusMessage = msg;
         }
 
         private void UpdateStaff()
         {
-            if (SelectedStaff == null) return;
-            SelectedStaff.Fullname = StaffFullname;
+            if (SelectedStaff == null)
+            {
+                LoadStaff();
+                StaffStatusMessage = "Đã làm mới danh sách nhân sự từ CSDL.";
+                return;
+            }
+            SelectedStaff.Fullname = StaffFullname.Trim();
             SelectedStaff.Role = StaffRole;
-            _adminService.UpdateUser(SelectedStaff);
+            bool ok = _adminService.UpdateUser(SelectedStaff);
             LoadStaff();
+            StaffStatusMessage = ok
+                ? "Đã cập nhật thông tin nhân sự."
+                : "Nhân sự này không còn trong CSDL. Đã tải lại danh sách.";
+        }
+
+        private void ToggleStaffLock()
+        {
+            if (SelectedStaff == null)
+            {
+                LoadStaff();
+                return;
+            }
+            bool ok = _adminService.ToggleUserLock(SelectedStaff.UserId);
+            LoadStaff();
+            StaffStatusMessage = ok
+                ? "Đã thay đổi trạng thái tài khoản."
+                : "Nhân sự không còn trong CSDL. Đã tải lại danh sách.";
         }
 
         private void AssignShift()
@@ -278,7 +306,7 @@ namespace HospitalManagement.ViewModels.Management
 
         private void SaveDrug()
         {
-            if (string.IsNullOrWhiteSpace(DrugName)) return;
+            if (string.IsNullOrWhiteSpace(DrugName) || DrugPrice < 0 || DrugStock < 0) return;
             var drug = new Drug
             {
                 DrugId = SelectedDrug?.DrugId ?? 0,
@@ -293,7 +321,7 @@ namespace HospitalManagement.ViewModels.Management
 
         private void SaveService()
         {
-            if (string.IsNullOrWhiteSpace(ServiceName)) return;
+            if (string.IsNullOrWhiteSpace(ServiceName) || ServicePrice < 0) return;
             var svc = new Service
             {
                 ServiceId = SelectedService?.ServiceId ?? 0,

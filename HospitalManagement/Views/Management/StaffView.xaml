@@ -4,6 +4,7 @@
              xmlns:helpers="clr-namespace:HospitalManagement.Helpers">
     <UserControl.Resources>
         <helpers:BoolToActiveTextConverter x:Key="ActiveConv"/>
+        <helpers:RoleToVietnameseConverter x:Key="RoleViConv"/>
     </UserControl.Resources>
     <TabControl Margin="4">
         <TabItem Header="Quản lý Nhân sự">
@@ -11,28 +12,30 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 <GroupBox Header="Thông tin nhân viên">
                     <WrapPanel>
-                        <StackPanel Width="150" Margin="4">
+                        <StackPanel Width="140" Margin="4">
                             <TextBlock Text="Username"/>
                             <TextBox Text="{Binding StaffUsername, UpdateSourceTrigger=PropertyChanged}"/>
                         </StackPanel>
-                        <StackPanel Width="140" Margin="4">
+                        <StackPanel Width="130" Margin="4">
                             <TextBlock Text="Mật khẩu (tạo mới)"/>
                             <TextBox Text="{Binding StaffPassword, UpdateSourceTrigger=PropertyChanged}"/>
                         </StackPanel>
-                        <StackPanel Width="180" Margin="4">
+                        <StackPanel Width="170" Margin="4">
                             <TextBlock Text="Họ tên"/>
                             <TextBox Text="{Binding StaffFullname, UpdateSourceTrigger=PropertyChanged}"/>
                         </StackPanel>
-                        <StackPanel Width="130" Margin="4">
+                        <StackPanel Width="125" Margin="4">
                             <TextBlock Text="Chức vụ"/>
                             <ComboBox ItemsSource="{Binding RoleOptions}" SelectedItem="{Binding StaffRole}"/>
                         </StackPanel>
                         <Button Content="Thêm" Command="{Binding AddStaffCommand}" VerticalAlignment="Bottom" Margin="4,0,2,2"/>
                         <Button Content="Cập nhật" Style="{StaticResource SecondaryButton}" Command="{Binding UpdateStaffCommand}" VerticalAlignment="Bottom" Margin="2,0,2,2"/>
                         <Button Content="Khóa/Mở" Style="{StaticResource SecondaryButton}" Command="{Binding ToggleStaffLockCommand}" VerticalAlignment="Bottom" Margin="2,0,2,2"/>
+                        <Button Content="Làm mới" Style="{StaticResource SecondaryButton}" Command="{Binding RefreshAllCommand}" VerticalAlignment="Bottom" Margin="2,0,2,2"/>
                     </WrapPanel>
                 </GroupBox>
                 <DataGrid Grid.Row="1" ItemsSource="{Binding StaffList}" SelectedItem="{Binding SelectedStaff}" Margin="4">
@@ -40,10 +43,11 @@
                         <DataGridTextColumn Header="ID" Binding="{Binding UserId}" Width="60"/>
                         <DataGridTextColumn Header="Username" Binding="{Binding Username}" Width="140"/>
                         <DataGridTextColumn Header="Họ tên" Binding="{Binding Fullname}" Width="*"/>
-                        <DataGridTextColumn Header="Vai trò" Binding="{Binding Role}" Width="120"/>
+                        <DataGridTextColumn Header="Vai trò" Binding="{Binding Role, Converter={StaticResource RoleViConv}}" Width="130"/>
                         <DataGridTextColumn Header="Trạng thái" Binding="{Binding IsActive, Converter={StaticResource ActiveConv}}" Width="110"/>
                     </DataGrid.Columns>
                 </DataGrid>
+                <TextBlock Grid.Row="2" Text="{Binding StaffStatusMessage}" Foreground="{StaticResource PrimaryBlue}" Margin="4"/>
             </Grid>
         </TabItem>
 
@@ -67,11 +71,12 @@
                             <TextBlock Text="Ngày trực"/>
                             <DatePicker SelectedDate="{Binding ShiftDate}"/>
                         </StackPanel>
-                        <StackPanel Width="180" Margin="4">
+                        <StackPanel Width="150" Margin="4">
                             <TextBlock Text="Khung giờ"/>
                             <ComboBox ItemsSource="{Binding TimeFrames}" SelectedItem="{Binding ShiftTimeFrame}"/>
                         </StackPanel>
                         <Button Content="Phân công" Command="{Binding AssignShiftCommand}" VerticalAlignment="Bottom" Margin="4,0,2,2"/>
+                        <Button Content="Làm mới" Style="{StaticResource SecondaryButton}" Command="{Binding RefreshAllCommand}" VerticalAlignment="Bottom" Margin="2,0,2,2"/>
                     </WrapPanel>
                 </GroupBox>
                 <DataGrid Grid.Row="1" ItemsSource="{Binding Shifts}" Margin="4">
@@ -80,23 +85,26 @@
                         <DataGridTextColumn Header="Nhân viên" Binding="{Binding User.Fullname}" Width="*"/>
                         <DataGridTextColumn Header="Phòng" Binding="{Binding Room.RoomName}" Width="150"/>
                         <DataGridTextColumn Header="Ngày" Binding="{Binding ShiftDate, StringFormat=dd/MM/yyyy}" Width="120"/>
-                        <DataGridTextColumn Header="Ca trực" Binding="{Binding TimeFrame}" Width="180"/>
+                        <DataGridTextColumn Header="Ca trực" Binding="{Binding TimeFrame}" Width="140"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </Grid>
         </TabItem>
 
         <TabItem Header="Hồ sơ Bệnh nhân">
-            <DataGrid ItemsSource="{Binding Patients}" Margin="4">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="ID" Binding="{Binding PatientId}" Width="60"/>
-                    <DataGridTextColumn Header="Họ tên" Binding="{Binding Fullname}" Width="*"/>
-                    <DataGridTextColumn Header="Điện thoại" Binding="{Binding Phone}" Width="130"/>
-                    <DataGridTextColumn Header="Ngày sinh" Binding="{Binding DateofBirth, StringFormat=dd/MM/yyyy}" Width="110"/>
-                    <DataGridTextColumn Header="Giới tính" Binding="{Binding Gender}" Width="80"/>
-                    <DataGridTextColumn Header="Mã BHYT" Binding="{Binding HealthInsuranceCode}" Width="160"/>
-                </DataGrid.Columns>
-            </DataGrid>
+            <DockPanel Margin="4">
+                <Button DockPanel.Dock="Top" Content="Làm mới" Style="{StaticResource SecondaryButton}" Command="{Binding RefreshAllCommand}" HorizontalAlignment="Right" Margin="0,0,0,6"/>
+                <DataGrid ItemsSource="{Binding Patients}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="ID" Binding="{Binding PatientId}" Width="60"/>
+                        <DataGridTextColumn Header="Họ tên" Binding="{Binding Fullname}" Width="*"/>
+                        <DataGridTextColumn Header="Điện thoại" Binding="{Binding Phone}" Width="130"/>
+                        <DataGridTextColumn Header="Ngày sinh" Binding="{Binding DateofBirth, StringFormat=dd/MM/yyyy}" Width="110"/>
+                        <DataGridTextColumn Header="Giới tính" Binding="{Binding Gender}" Width="80"/>
+                        <DataGridTextColumn Header="Mã BHYT" Binding="{Binding HealthInsuranceCode}" Width="160"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
         </TabItem>
     </TabControl>
 </UserControl>

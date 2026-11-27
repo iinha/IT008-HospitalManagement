@@ -43,7 +43,7 @@ namespace HospitalManagement.ViewModels.Pharmacy
             LoadData();
         }
 
-        private void LoadData()
+        public void LoadData()
         {
             PrescriptionRecords.Clear();
             foreach (var r in _billingService.GetPendingPrescriptions()) PrescriptionRecords.Add(r);

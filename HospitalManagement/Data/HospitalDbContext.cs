@@ -210,7 +210,7 @@ public partial class HospitalDbContext : DbContext
             entity.Property(e => e.DateofBirth).HasColumnType("smalldatetime");
             entity.Property(e => e.Fullname)
                 .HasMaxLength(100)
-                .IsUnicode(false);
+                .IsUnicode(true);
             entity.Property(e => e.Gender).HasMaxLength(10);
             entity.Property(e => e.HealthInsuranceCode)
                 .HasMaxLength(20)

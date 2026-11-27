@@ -22,7 +22,7 @@
                         <TextBlock Text="{Binding BookingCode}" FontSize="20" FontWeight="Bold" Margin="0,4,0,0"/>
                     </StackPanel>
                 </Border>
-                <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource PrimaryBlue}" TextWrapping="Wrap" Margin="2,6"/>
+                <TextBlock Text="{Binding BookingStatusMessage}" Foreground="{StaticResource PrimaryBlue}" TextWrapping="Wrap" Margin="2,6"/>
             </StackPanel>
         </GroupBox>
 
@@ -39,6 +39,7 @@
                 <TextBlock Text="Mã thẻ Bảo hiểm y tế (BHYT):"/>
                 <TextBox Text="{Binding Profile.HealthInsuranceCode, UpdateSourceTrigger=PropertyChanged}"/>
                 <Button Content="Lưu cập nhật hồ sơ" Style="{StaticResource SecondaryButton}" Command="{Binding SaveProfileCommand}" Margin="2,12,2,2"/>
+                <TextBlock Text="{Binding ProfileStatusMessage}" Foreground="{StaticResource PrimaryBlue}" TextWrapping="Wrap" Margin="2,6"/>
             </StackPanel>
         </GroupBox>
     </Grid>

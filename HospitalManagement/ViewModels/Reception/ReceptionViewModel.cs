@@ -42,7 +42,7 @@ namespace HospitalManagement.ViewModels.Reception
             LoadAll();
         }
 
-        private void LoadAll()
+        public void LoadAll()
         {
             Appointments.Clear();
             foreach (var a in _examService.GetAllPendingAppointments()) Appointments.Add(a);

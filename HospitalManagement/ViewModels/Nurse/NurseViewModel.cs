@@ -93,7 +93,7 @@ namespace HospitalManagement.ViewModels.Nurse
             LoadAll();
         }
 
-        private void LoadAll()
+        public void LoadAll()
         {
             WaitingRecords.Clear();
             foreach (var r in _examService.GetRecordsForNurse()) WaitingRecords.Add(r);

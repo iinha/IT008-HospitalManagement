@@ -55,4 +55,33 @@ namespace HospitalManagement.Helpers
             throw new NotImplementedException();
         }
     }
+
+    public class RoleToVietnameseConverter : IValueConverter
+    {
+        public static string Translate(string? role)
+        {
+            string r = role?.Trim().ToLower() ?? string.Empty;
+            return r switch
+            {
+                "admin" => "Quản trị viên",
+                "management" or "manager" => "Ban quản lý",
+                "doctor" => "Bác sĩ",
+                "nurse" => "Y tá / KTV",
+                "reception" or "receptionist" => "Lễ tân",
+                "pharmacy" or "pharmacist" => "Dược sĩ",
+                "patient" => "Bệnh nhân",
+                _ => role ?? string.Empty
+            };
+        }
+
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            return Translate(value?.ToString());
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
 }

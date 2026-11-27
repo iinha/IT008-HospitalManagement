@@ -4,6 +4,7 @@
              xmlns:helpers="clr-namespace:HospitalManagement.Helpers">
     <UserControl.Resources>
         <helpers:BoolToActiveTextConverter x:Key="ActiveConv"/>
+        <helpers:RoleToVietnameseConverter x:Key="RoleViConv"/>
     </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
@@ -13,7 +14,10 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Text="QUẢN LÝ TÀI KHOẢN &amp; PHÂN QUYỀN" FontSize="16" FontWeight="Bold" Foreground="{StaticResource PrimaryBlue}" Margin="4,0,4,8"/>
+        <DockPanel Margin="4,0,4,8">
+            <TextBlock Text="QUẢN LÝ TÀI KHOẢN &amp; PHÂN QUYỀN" FontSize="16" FontWeight="Bold" Foreground="{StaticResource PrimaryBlue}" VerticalAlignment="Center"/>
+            <Button DockPanel.Dock="Right" Content="Làm mới" Style="{StaticResource SecondaryButton}" Command="{Binding RefreshAllCommand}"/>
+        </DockPanel>
 
         <GroupBox Grid.Row="1" Header="Cấp tài khoản mới / Thao tác tài khoản đang chọn">
             <StackPanel>
@@ -50,7 +54,7 @@
                 <DataGridTextColumn Header="ID" Binding="{Binding UserId}" Width="60"/>
                 <DataGridTextColumn Header="Tên đăng nhập" Binding="{Binding Username}" Width="160"/>
                 <DataGridTextColumn Header="Họ và tên" Binding="{Binding Fullname}" Width="*"/>
-                <DataGridTextColumn Header="Vai trò" Binding="{Binding Role}" Width="130"/>
+                <DataGridTextColumn Header="Vai trò" Binding="{Binding Role, Converter={StaticResource RoleViConv}}" Width="140"/>
                 <DataGridTextColumn Header="Trạng thái" Binding="{Binding IsActive, Converter={StaticResource ActiveConv}}" Width="120"/>
             </DataGrid.Columns>
         </DataGrid>
