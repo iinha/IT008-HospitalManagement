@@ -27,7 +27,7 @@ namespace HospitalManagement.ViewModels.Management
 
         private Room? _selectedRoom;
         private DateTime _shiftDate = DateTime.Today;
-        private string _shiftTimeFrame = "Sáng (07:30 - 11:30)";
+        private string _shiftTimeFrame = "Sang 07:30-11:30";
 
         private Drug? _selectedDrug;
         private string _drugName = string.Empty;
@@ -56,7 +56,7 @@ namespace HospitalManagement.ViewModels.Management
         public ObservableCollection<Article> Articles { get; } = new();
 
         public string[] RoleOptions { get; } = { "Doctor", "Nurse", "Reception", "Pharmacy", "Management" };
-        public string[] TimeFrames { get; } = { "Sáng (07:30 - 11:30)", "Chiều (13:30 - 17:30)", "Tối (18:00 - 21:00)" };
+        public string[] TimeFrames { get; } = { "Sang 07:30-11:30", "Chieu 13:30-17:30", "Toi 18:00-21:00" };
         public string[] ArticleCategories { get; } = { "Giới thiệu", "Cơ sở vật chất", "Đội ngũ bác sĩ", "Tin tức sức khỏe" };
 
         public decimal TotalRevenue { get => _totalRevenue; set => SetProperty(ref _totalRevenue, value); }

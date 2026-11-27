@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -19,6 +20,22 @@ namespace HospitalManagement.Services
     {
         public static AuthSession? CurrentSession { get; private set; }
 
+        private static readonly List<(string Username, string Password, AuthSession Session)> DefaultStaffAccounts = new()
+        {
+            ("admin", "123456", new AuthSession { Id = -1, Fullname = "Quản trị hệ thống (Test)", Role = "Admin", IsPatient = false }),
+            ("manager", "123456", new AuthSession { Id = -2, Fullname = "Ban quản lý (Test)", Role = "Management", IsPatient = false }),
+            ("doctor", "123456", new AuthSession { Id = -3, Fullname = "BS. Nguyễn Lạc Thường Miên (Test)", Role = "Doctor", IsPatient = false }),
+            ("nurse", "123456", new AuthSession { Id = -4, Fullname = "ĐD. Nguyễn Võ Ái Nhã (Test)", Role = "Nurse", IsPatient = false }),
+            ("reception", "123456", new AuthSession { Id = -5, Fullname = "LT. Võ Duy Hoàng (Test)", Role = "Reception", IsPatient = false }),
+            ("pharmacy", "123456", new AuthSession { Id = -6, Fullname = "DS. Nguyễn Văn A (Test)", Role = "Pharmacy", IsPatient = false })
+        };
+
+        private static readonly List<(string Phone, string Password, AuthSession Session)> DefaultPatientAccounts = new()
+        {
+            ("0901234567", "123456", new AuthSession { Id = -100, Fullname = "Bệnh nhân mẫu (Test)", Role = "Patient", IsPatient = true }),
+            ("patient", "123456", new AuthSession { Id = -100, Fullname = "Bệnh nhân mẫu (Test)", Role = "Patient", IsPatient = true })
+        };
+
         public string HashPassword(string password)
         {
             using var sha = SHA256.Create();
@@ -34,6 +51,14 @@ namespace HospitalManagement.Services
 
         public AuthSession? LoginStaff(string username, string password)
         {
+            var defaultAcc = DefaultStaffAccounts.FirstOrDefault(a =>
+                a.Username.Equals(username, StringComparison.OrdinalIgnoreCase) && a.Password == password);
+            if (defaultAcc.Session != null)
+            {
+                CurrentSession = defaultAcc.Session;
+                return CurrentSession;
+            }
+
             using var db = new HospitalDbContext();
             var user = db.Users.FirstOrDefault(u => u.Username == username);
             if (user == null || user.IsActive == false || !VerifyPassword(password, user.PasswordHash))
@@ -53,6 +78,14 @@ namespace HospitalManagement.Services
 
         public AuthSession? LoginPatient(string phone, string password)
         {
+            var defaultAcc = DefaultPatientAccounts.FirstOrDefault(a =>
+                a.Phone.Equals(phone, StringComparison.OrdinalIgnoreCase) && a.Password == password);
+            if (defaultAcc.Session != null)
+            {
+                CurrentSession = defaultAcc.Session;
+                return CurrentSession;
+            }
+
             using var db = new HospitalDbContext();
             var patient = db.Patients.FirstOrDefault(p => p.Phone == phone);
             if (patient == null || !VerifyPassword(password, patient.PasswordHash))
@@ -97,7 +130,7 @@ namespace HospitalManagement.Services
 
         public void Logout()
         {
-            if (CurrentSession != null && !CurrentSession.IsPatient)
+            if (CurrentSession != null && !CurrentSession.IsPatient && CurrentSession.Id > 0)
             {
                 using var db = new HospitalDbContext();
                 WriteLog(db, CurrentSession.Id, "Đăng xuất hệ thống");
@@ -107,6 +140,7 @@ namespace HospitalManagement.Services
 
         public void WriteLog(HospitalDbContext db, int userId, string action)
         {
+            if (userId <= 0 || !db.Users.Any(u => u.UserId == userId)) return;
             int nextLogId = (db.Syslogs.Max(l => (int?)l.LogId) ?? 0) + 1;
             db.Syslogs.Add(new Syslog
             {

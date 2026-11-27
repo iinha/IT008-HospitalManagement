@@ -37,7 +37,7 @@ namespace HospitalManagement.Services
             using var db = new HospitalDbContext();
             var appt = db.Appointments.First(a => a.ApptId == apptId);
             appt.Status = "Đợi khám";
-            if (doctorId.HasValue) appt.DoctorId = doctorId.Value;
+            if (doctorId.HasValue && doctorId.Value > 0) appt.DoctorId = doctorId.Value;
 
             if (roomId.HasValue)
             {
@@ -80,7 +80,7 @@ namespace HospitalManagement.Services
                 .Include(r => r.Exammetric)
                 .Include(r => r.Servicedetails).ThenInclude(s => s.Service)
                 .Include(r => r.Prescriptiondetails).ThenInclude(p => p.Drug)
-                .Where(r => r.DoctorId == doctorId && r.Status != "Đã khám")
+                .Where(r => (doctorId <= 0 || r.DoctorId == doctorId) && r.Status != "Đã khám")
                 .OrderBy(r => r.VisitDate)
                 .ToList();
         }
@@ -104,7 +104,7 @@ namespace HospitalManagement.Services
             var record = db.Medicalrecords.FirstOrDefault(r => r.RecordId == recordId);
             if (record == null) return;
 
-            if (nurseId.HasValue) record.NurseId = nurseId.Value;
+            if (nurseId.HasValue && nurseId.Value > 0) record.NurseId = nurseId.Value;
             if (record.Status == "Chờ đo chỉ số") record.Status = "Đợi khám";
 
             var existing = db.Exammetrics.FirstOrDefault(e => e.RecordId == recordId);
@@ -169,6 +169,9 @@ namespace HospitalManagement.Services
                     ResultNote = string.Empty
                 });
 
+                string billType = $"DV: {service.ServiceName}";
+                if (billType.Length > 30) billType = billType.Substring(0, 30);
+
                 int nextBillId = (db.Bills.Max(b => (int?)b.BillId) ?? 0) + 1;
                 db.Bills.Add(new Bill
                 {
@@ -176,7 +179,7 @@ namespace HospitalManagement.Services
                     RecordId = recordId,
                     TotalAmount = service.Price ?? 0m,
                     CreatedAt = DateTime.Now,
-                    BillType = $"Dịch vụ: {service.ServiceName}",
+                    BillType = billType,
                     Status = "Chưa thanh toán"
                 });
 
@@ -259,7 +262,7 @@ namespace HospitalManagement.Services
             {
                 CareOrderId = nextId,
                 RecordId = recordId,
-                NurseId = nurseId,
+                NurseId = nurseId.HasValue && nurseId.Value > 0 ? nurseId.Value : null,
                 ActionName = actionName,
                 Status = "Chờ thực hiện",
                 ExecuteAt = DateTime.Now
@@ -282,7 +285,7 @@ namespace HospitalManagement.Services
             using var db = new HospitalDbContext();
             var order = db.Careorders.FirstOrDefault(c => c.CareOrderId == careOrderId);
             if (order == null) return;
-            order.NurseId = nurseId;
+            if (nurseId > 0) order.NurseId = nurseId;
             order.Status = "Hoàn thành";
             order.ExecuteAt = DateTime.Now;
             db.SaveChanges();
@@ -317,13 +320,15 @@ namespace HospitalManagement.Services
         {
             using var db = new HospitalDbContext();
             var query = db.Shifts.Include(s => s.User).Include(s => s.Room).AsQueryable();
-            if (userId.HasValue) query = query.Where(s => s.UserId == userId.Value);
+            if (userId.HasValue && userId.Value > 0) query = query.Where(s => s.UserId == userId.Value);
             return query.OrderByDescending(s => s.ShiftDate).ToList();
         }
 
         public void RegisterShift(int userId, int roomId, DateTime date, string timeFrame)
         {
+            if (userId <= 0) return;
             using var db = new HospitalDbContext();
+            string safeTimeFrame = timeFrame.Length > 20 ? timeFrame.Substring(0, 20) : timeFrame;
             int nextId = (db.Shifts.Max(s => (int?)s.ShiftId) ?? 0) + 1;
             db.Shifts.Add(new Shift
             {
@@ -331,7 +336,7 @@ namespace HospitalManagement.Services
                 UserId = userId,
                 RoomId = roomId,
                 ShiftDate = date,
-                TimeFrame = timeFrame
+                TimeFrame = safeTimeFrame
             });
             db.SaveChanges();
         }
@@ -341,7 +346,7 @@ namespace HospitalManagement.Services
             using var db = new HospitalDbContext();
             return db.Questions
                 .Include(q => q.Patient)
-                .Where(q => q.DoctorId == doctorId || q.DoctorId == null)
+                .Where(q => doctorId <= 0 || q.DoctorId == doctorId || q.DoctorId == null)
                 .OrderByDescending(q => q.CreatedAt)
                 .ToList();
         }
@@ -351,7 +356,7 @@ namespace HospitalManagement.Services
             using var db = new HospitalDbContext();
             var q = db.Questions.FirstOrDefault(x => x.QuestionId == questionId);
             if (q == null) return;
-            q.DoctorId = doctorId;
+            if (doctorId > 0) q.DoctorId = doctorId;
             q.AnswerContent = answer;
             q.Status = "Đã trả lời";
             db.SaveChanges();

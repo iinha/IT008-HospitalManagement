@@ -206,7 +206,9 @@ namespace HospitalManagement.Services
             {
                 article.ArticleId = (db.Articles.Max(a => (int?)a.ArticleId) ?? 0) + 1;
                 article.CreatedAt = DateTime.Now;
-                article.AuthorId = AuthService.CurrentSession?.Id;
+                article.AuthorId = AuthService.CurrentSession != null && AuthService.CurrentSession.Id > 0
+                    ? AuthService.CurrentSession.Id
+                    : null;
                 db.Articles.Add(article);
             }
             else
@@ -296,7 +298,7 @@ namespace HospitalManagement.Services
 
         private void LogCurrentUser(HospitalDbContext db, string action)
         {
-            if (AuthService.CurrentSession != null && !AuthService.CurrentSession.IsPatient)
+            if (AuthService.CurrentSession != null && !AuthService.CurrentSession.IsPatient && AuthService.CurrentSession.Id > 0)
                 _authService.WriteLog(db, AuthService.CurrentSession.Id, action);
         }
     }

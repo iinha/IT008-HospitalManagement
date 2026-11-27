@@ -11,12 +11,26 @@ namespace HospitalManagement.Services
     {
         public Patient? GetPatientById(int patientId)
         {
+            if (patientId <= 0)
+            {
+                return new Patient
+                {
+                    PatientId = patientId,
+                    Fullname = "Bệnh nhân mẫu (Test)",
+                    Phone = "0901234567",
+                    DateofBirth = new DateTime(2000, 1, 1),
+                    Gender = "Nam",
+                    HealthInsuranceCode = "DN4790000000000"
+                };
+            }
+
             using var db = new HospitalDbContext();
             return db.Patients.FirstOrDefault(p => p.PatientId == patientId);
         }
 
         public void UpdateProfile(Patient updated)
         {
+            if (updated.PatientId <= 0) return;
             using var db = new HospitalDbContext();
             var existing = db.Patients.FirstOrDefault(p => p.PatientId == updated.PatientId);
             if (existing == null) return;
@@ -40,6 +54,19 @@ namespace HospitalManagement.Services
 
         public Appointment BookAppointment(int patientId, int doctorId, DateTime date, string timeSlot)
         {
+            if (patientId <= 0)
+            {
+                return new Appointment
+                {
+                    ApptId = 0,
+                    PatientId = patientId,
+                    DoctorId = doctorId,
+                    ApptDate = DateOnly.FromDateTime(date),
+                    TimeSlot = timeSlot,
+                    Status = "Đã đặt lịch"
+                };
+            }
+
             using var db = new HospitalDbContext();
             int nextId = (db.Appointments.Max(a => (int?)a.ApptId) ?? 0) + 1;
             var appt = new Appointment
@@ -58,6 +85,7 @@ namespace HospitalManagement.Services
 
         public List<Appointment> GetAppointmentsByPatient(int patientId)
         {
+            if (patientId <= 0) return new List<Appointment>();
             using var db = new HospitalDbContext();
             return db.Appointments
                 .Include(a => a.Doctor)
@@ -68,6 +96,7 @@ namespace HospitalManagement.Services
 
         public List<Medicalrecord> GetMedicalHistory(int patientId)
         {
+            if (patientId <= 0) return new List<Medicalrecord>();
             using var db = new HospitalDbContext();
             return db.Medicalrecords
                 .Include(m => m.Doctor)
@@ -81,6 +110,7 @@ namespace HospitalManagement.Services
 
         public List<Bill> GetBillsByPatient(int patientId)
         {
+            if (patientId <= 0) return new List<Bill>();
             using var db = new HospitalDbContext();
             return db.Bills
                 .Include(b => b.Record)
@@ -100,6 +130,7 @@ namespace HospitalManagement.Services
 
         public List<Question> GetQuestionsByPatient(int patientId)
         {
+            if (patientId <= 0) return new List<Question>();
             using var db = new HospitalDbContext();
             return db.Questions
                 .Include(q => q.Doctor)
@@ -120,13 +151,14 @@ namespace HospitalManagement.Services
 
         public void SubmitQuestion(int patientId, int? doctorId, string content)
         {
+            if (patientId <= 0) return;
             using var db = new HospitalDbContext();
             int nextId = (db.Questions.Max(q => (int?)q.QuestionId) ?? 0) + 1;
             db.Questions.Add(new Question
             {
                 QuestionId = nextId,
                 PatientId = patientId,
-                DoctorId = doctorId,
+                DoctorId = doctorId.HasValue && doctorId.Value > 0 ? doctorId.Value : null,
                 Content = content,
                 Status = "Chờ trả lời",
                 CreatedAt = DateTime.Now
